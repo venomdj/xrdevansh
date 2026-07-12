@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ranking Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  body{padding:28px;max-width:960px;margin:0 auto;}
+  h1{font-family:var(--font-display);font-size:26px;margin:0 0 4px;}
+  .sub{color:var(--ink-dim);font-size:13px;margin-bottom:20px;}
+  .idbar{
+    display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;
+    font-family:var(--font-mono);
+  }
+  .idbar input{flex:1;min-width:150px;}
+  table{width:100%;border-collapse:collapse;background:var(--bg-panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;}
+  thead th{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-dim);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);
+  }
+  tbody td{padding:8px 12px;border-bottom:1px solid var(--line);}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody input{width:70px;text-align:center;}
+  tbody input.name{width:100%;text-align:left;}
+  .stepper{display:flex;align-items:center;gap:6px;justify-content:center;}
+  .stepper button{padding:4px 9px;font-size:14px;}
+  .toolbar{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;}
+  .status{font-family:var(--font-mono);font-size:12px;color:var(--accent-2);margin-left:8px;}
+  .remove{color:var(--danger);background:none;border:none;font-size:18px;cursor:pointer;}
+  a.overlay-link{color:var(--accent);font-family:var(--font-mono);font-size:12px;word-break:break-all;}
+</style>
+</head>
+<body>
+
+<h1>Live Ranking — Admin</h1>
+<div class="sub">Update alive count, kills and placement points. Overlay updates instantly.</div>
+
+<div class="idbar">
+  <input id="tid" placeholder="Tournament ID (tid)">
+  <input id="rid" placeholder="Round ID (rid)">
+  <input id="mid" placeholder="Match ID (mid)">
+  <input id="setId" placeholder="Set ID (setId)">
+  <button class="primary" id="loadBtn">Load / Connect</button>
+</div>
+<div id="overlayLinkBox" style="margin-bottom:16px;display:none;">
+  Overlay URL: <a class="overlay-link" id="overlayLink" href="#" target="_blank"></a>
+  <button class="ghost" id="copyLinkBtn" style="margin-left:8px;padding:4px 10px;font-size:12px;">Copy</button>
+</div>
+
+<div class="toolbar">
+  <input id="matchLabel" placeholder="Match label e.g. MATCH 3" style="width:180px;">
+  <button class="ghost" id="setLabelBtn">Set Label</button>
+  <button class="primary" id="addTeamBtn">+ Add Team</button>
+  <button class="danger" id="resetBtn">Reset All Alive/Kills</button>
+  <span class="status" id="status"></span>
+</div>
+
+<table>
+  <thead>
+    <tr><th>Team</th><th>Alive</th><th>Kills</th><th>Placement Pts</th><th>Total</th><th></th></tr>
+  </thead>
+  <tbody id="teamRows"><tr><td colspan="6" style="color:var(--ink-dim);">Load a set to begin.</td></tr></tbody>
+</table>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+let current = null; // {tid, rid, mid, setId}
+const statusEl = document.getElementById('status');
+
+function flash(msg) {
+  statusEl.textContent = msg;
+  setTimeout(() => statusEl.textContent = '', 1500);
+}
+
+// Pre-fill from URL if present, e.g. admin.html?tid=..&rid=..&mid=..&setId=..
+(function prefill() {
+  const ids = getUrlIds();
+  if (ids.tid) document.getElementById('tid').value = ids.tid;
+  if (ids.rid) document.getElementById('rid').value = ids.rid;
+  if (ids.mid) document.getElementById('mid').value = ids.mid;
+  if (ids.setId) document.getElementById('setId').value = ids.setId;
+})();
+
+document.getElementById('loadBtn').onclick = () => {
+  const tid = document.getElementById('tid').value.trim();
+  const rid = document.getElementById('rid').value.trim();
+  const mid = document.getElementById('mid').value.trim();
+  const setId = document.getElementById('setId').value.trim();
+  if (!tid || !rid || !mid || !setId) { alert('Fill in all four IDs.'); return; }
+  current = { tid, rid, mid, setId };
+  connect();
+};
+
+function connect() {
+  const { tid, rid, mid, setId } = current;
+
+  const overlayUrl = `${location.origin}${location.pathname.replace('admin.html','live_ranking.html')}?tid=${tid}&rid=${rid}&mid=${mid}&setId=${setId}`;
+  document.getElementById('overlayLinkBox').style.display = 'block';
+  const linkEl = document.getElementById('overlayLink');
+  linkEl.href = overlayUrl;
+  linkEl.textContent = overlayUrl;
+  document.getElementById('copyLinkBtn').onclick = () => {
+    navigator.clipboard.writeText(overlayUrl);
+    flash('Link copied');
+  };
+
+  teamsRef(tid, rid, mid, setId).on('value', snap => {
+    renderTeams(snap.val() || {});
+  });
+
+  metaRef(tid, rid, mid, setId).once('value').then(snap => {
+    const meta = snap.val();
+    if (meta && meta.matchLabel) document.getElementById('matchLabel').value = meta.matchLabel;
+  });
+}
+
+function renderTeams(teams) {
+  const tbody = document.getElementById('teamRows');
+  const entries = Object.entries(teams);
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink-dim);">No teams yet — click "+ Add Team".</td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map(([key, t]) => {
+    const alive = Number(t.alive ?? 0);
+    const kills = Number(t.kills ?? 0);
+    const pp = Number(t.placementPoints ?? 0);
+    const total = alive >= 0 ? pp + kills : pp + kills;
+    return `
+    <tr data-key="${key}">
+      <td><input class="name" value="${escapeAttr(t.name || '')}" data-field="name"></td>
+      <td>
+        <div class="stepper">
+          <button class="ghost step" data-field="alive" data-delta="-1">-</button>
+          <input data-field="alive" value="${alive}">
+          <button class="ghost step" data-field="alive" data-delta="1">+</button>
+        </div>
+      </td>
+      <td>
+        <div class="stepper">
+          <button class="ghost step" data-field="kills" data-delta="-1">-</button>
+          <input data-field="kills" value="${kills}">
+          <button class="ghost step" data-field="kills" data-delta="1">+</button>
+        </div>
+      </td>
+      <td><input data-field="placementPoints" value="${pp}"></td>
+      <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-2);text-align:center;">${total}</td>
+      <td><button class="remove" title="Remove team">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  // Wire up inputs
+  tbody.querySelectorAll('input[data-field]').forEach(inp => {
+    inp.addEventListener('change', () => onFieldChange(inp));
+  });
+  tbody.querySelectorAll('button.step').forEach(btn => {
+    btn.addEventListener('click', () => onStep(btn));
+  });
+  tbody.querySelectorAll('button.remove').forEach(btn => {
+    btn.addEventListener('click', () => onRemove(btn));
+  });
+}
+
+function rowKey(el) { return el.closest('tr').dataset.key; }
+
+function onFieldChange(inp) {
+  const key = rowKey(inp);
+  const field = inp.dataset.field;
+  let value = inp.value;
+  if (field !== 'name') value = Number(value) || 0;
+  const { tid, rid, mid, setId } = current;
+  teamsRef(tid, rid, mid, setId).child(key).update({ [field]: value });
+  flash('Saved');
+}
+
+function onStep(btn) {
+  const key = rowKey(btn);
+  const field = btn.dataset.field;
+  const delta = Number(btn.dataset.delta);
+  const { tid, rid, mid, setId } = current;
+  const ref = teamsRef(tid, rid, mid, setId).child(key).child(field);
+  ref.once('value').then(snap => {
+    const newVal = Math.max(0, Number(snap.val() || 0) + delta);
+    ref.set(newVal);
+  });
+}
+
+function onRemove(btn) {
+  const key = rowKey(btn);
+  if (!confirm('Remove this team?')) return;
+  const { tid, rid, mid, setId } = current;
+  teamsRef(tid, rid, mid, setId).child(key).remove();
+}
+
+document.getElementById('addTeamBtn').onclick = () => {
+  if (!current) { alert('Load a set first.'); return; }
+  const { tid, rid, mid, setId } = current;
+  const name = prompt('Team name?', 'New Team');
+  if (!name) return;
+  teamsRef(tid, rid, mid, setId).push({ name, alive: 4, kills: 0, placementPoints: 0 });
+};
+
+document.getElementById('resetBtn').onclick = () => {
+  if (!current) { alert('Load a set first.'); return; }
+  if (!confirm('Reset alive to 4 and kills to 0 for every team?')) return;
+  const { tid, rid, mid, setId } = current;
+  teamsRef(tid, rid, mid, setId).once('value').then(snap => {
+    const val = snap.val() || {};
+    const updates = {};
+    Object.keys(val).forEach(key => {
+      updates[`${key}/alive`] = 4;
+      updates[`${key}/kills`] = 0;
+    });
+    teamsRef(tid, rid, mid, setId).update(updates);
+    flash('Reset done');
+  });
+};
+
+document.getElementById('setLabelBtn').onclick = () => {
+  if (!current) { alert('Load a set first.'); return; }
+  const { tid, rid, mid, setId } = current;
+  const label = document.getElementById('matchLabel').value.trim();
+  metaRef(tid, rid, mid, setId).update({ matchLabel: label });
+  flash('Label set');
+};
+
+function escapeAttr(s) {
+  return String(s).replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>

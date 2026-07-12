@@ -1,0 +1,52 @@
+:root{
+  --bg-void:#0a0e14;
+  --bg-panel:#11161f;
+  --bg-panel-2:#161d29;
+  --line:#232b38;
+  --ink:#e8edf5;
+  --ink-dim:#7d8aa0;
+  --accent:#ffb400;
+  --accent-2:#00e0b0;
+  --danger:#ff4d5e;
+  --font-display:'Rajdhani',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:var(--font-body);background:var(--bg-void);color:var(--ink);}
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+}
+button{
+  font-family:var(--font-display);
+  cursor:pointer;
+  border:none;
+  border-radius:6px;
+  padding:10px 18px;
+  font-size:15px;
+  font-weight:600;
+  letter-spacing:.03em;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+button:active{transform:scale(.97);}
+button.primary{background:var(--accent);color:#141414;}
+button.primary:hover{box-shadow:0 0 0 2px rgba(255,180,0,.35);}
+button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+button.ghost:hover{border-color:var(--accent);color:var(--accent);}
+button.danger{background:var(--danger);color:#fff;}
+input,select{
+  font-family:var(--font-mono);
+  background:var(--bg-panel-2);
+  border:1px solid var(--line);
+  color:var(--ink);
+  border-radius:5px;
+  padding:8px 10px;
+  font-size:14px;
+}
+input:focus,select:focus{outline:none;border-color:var(--accent);}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}

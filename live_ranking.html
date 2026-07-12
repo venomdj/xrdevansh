@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Ranking Overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  html,body{
+    margin:0;padding:0;background:transparent;
+    font-family:'Rajdhani',sans-serif;
+    overflow:hidden;
+  }
+  #stage{
+    width:420px;
+    color:#eef2f8;
+    filter:drop-shadow(0 8px 24px rgba(0,0,0,.55));
+  }
+  .head{
+    background:linear-gradient(90deg,#0b0f16 0%,#141b26 100%);
+    border:1px solid #2a3444;
+    border-bottom:none;
+    border-radius:8px 8px 0 0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 14px;
+  }
+  .head .brand{
+    font-weight:700;font-size:17px;letter-spacing:.06em;
+    color:#ffb400;
+  }
+  .head .brand span{color:#e8edf5;}
+  .head .match{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;color:#7d8aa0;letter-spacing:.05em;
+  }
+  #rows{
+    background:rgba(10,13,19,.92);
+    border:1px solid #2a3444;
+    border-radius:0 0 8px 8px;
+    overflow:hidden;
+  }
+  .colhead{
+    display:grid;
+    grid-template-columns:34px 1fr 56px 52px 56px;
+    padding:6px 12px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+    color:#5c6779;
+    border-bottom:1px solid #202834;
+  }
+  .colhead div:not(:first-child){text-align:center;}
+  .row{
+    display:grid;
+    grid-template-columns:34px 1fr 56px 52px 56px;
+    align-items:center;
+    padding:7px 12px;
+    border-bottom:1px solid #1a2129;
+    transition:background .25s ease, transform .35s ease;
+  }
+  .row:last-child{border-bottom:none;}
+  .row.eliminated{opacity:.45;}
+  .row.top1{background:linear-gradient(90deg,rgba(255,180,0,.16),transparent);}
+  .rank{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:#ffb400;}
+  .team{
+    font-weight:600;font-size:15px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    display:flex;align-items:center;gap:8px;
+  }
+  .team .dot{width:6px;height:6px;border-radius:50%;background:#00e0b0;flex:none;}
+  .row.eliminated .team .dot{background:#ff4d5e;}
+  .alive,.kills,.total{
+    text-align:center;font-family:'JetBrains Mono',monospace;font-size:14px;
+  }
+  .total{font-weight:700;color:#00e0b0;}
+  .empty{
+    padding:22px 14px;text-align:center;color:#5c6779;
+    font-family:'JetBrains Mono',monospace;font-size:12px;
+  }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div class="head">
+    <div class="brand">LIVE <span>RANKING</span></div>
+    <div class="match" id="matchLabel">MATCH --</div>
+  </div>
+  <div id="rows">
+    <div class="colhead">
+      <div>#</div><div>TEAM</div><div>ALIVE</div><div>KILLS</div><div>TOTAL</div>
+    </div>
+    <div id="body"><div class="empty">Waiting for data…</div></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+const { tid, rid, mid, setId } = getUrlIds();
+const bodyEl = document.getElementById('body');
+const matchLabelEl = document.getElementById('matchLabel');
+
+if (!tid || !rid || !mid || !setId) {
+  bodyEl.innerHTML = '<div class="empty">Missing tid / rid / mid / setId in URL</div>';
+} else {
+  // Optional match label, e.g. "MATCH 3"
+  metaRef(tid, rid, mid, setId).on('value', snap => {
+    const meta = snap.val();
+    matchLabelEl.textContent = meta && meta.matchLabel ? meta.matchLabel : 'MATCH --';
+  });
+
+  teamsRef(tid, rid, mid, setId).on('value', snap => {
+    const val = snap.val();
+    if (!val) {
+      bodyEl.innerHTML = '<div class="empty">No teams yet</div>';
+      return;
+    }
+
+    const teams = Object.entries(val).map(([key, t]) => {
+      const alive = Number(t.alive ?? 0);
+      const kills = Number(t.kills ?? 0);
+      const placementPoints = Number(t.placementPoints ?? 0);
+      return {
+        key,
+        name: t.name || 'TEAM',
+        alive,
+        kills,
+        total: placementPoints + kills,
+        eliminated: alive <= 0
+      };
+    });
+
+    // Rank by total points desc, tie-break by kills desc
+    teams.sort((a, b) => b.total - a.total || b.kills - a.kills);
+
+    bodyEl.innerHTML = teams.map((t, i) => `
+      <div class="row ${t.eliminated ? 'eliminated' : ''} ${i === 0 ? 'top1' : ''}">
+        <div class="rank">${i + 1}</div>
+        <div class="team"><span class="dot"></span>${escapeHtml(t.name)}</div>
+        <div class="alive">${t.alive}</div>
+        <div class="kills">${t.kills}</div>
+        <div class="total">${t.total}</div>
+      </div>
+    `).join('');
+  }, err => {
+    bodyEl.innerHTML = `<div class="empty">DB error: ${err.message}</div>`;
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+</script>
+</body>
+</html>
