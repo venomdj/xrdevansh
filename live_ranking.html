@@ -110,9 +110,6 @@ const emptyMsg = document.getElementById('emptyMsg');
 let prevTotals = {};
 
 function rowStyle(i) {
-  if (i === 0) return { bg: '#e2542b', txt: '#ffffff', badge: '#c94523' };
-  if (i === 1) return { bg: '#e6e7e9', txt: '#1a1a1a', badge: '#c7c9cc' };
-  if (i === 2) return { bg: '#dfe3f5', txt: '#1a1a1a', badge: '#c3c9e8' };
   return i % 2 === 0
     ? { bg: '#26292b', txt: '#ffffff', badge: '#1a1c1d' }
     : { bg: '#2f3234', txt: '#ffffff', badge: '#1a1c1d' };
