@@ -86,6 +86,26 @@ h1{ font-family:var(--font-display); font-size:28px; font-weight:700; margin:2px
   font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--accent);
   background:var(--bg-elevated); border:1px solid var(--line); border-radius:6px; padding:4px 10px; min-width:34px; text-align:center;
 }
+
+.logo-upload{
+  position:relative; width:34px; height:34px; border-radius:7px; overflow:hidden;
+  background:var(--bg-elevated); border:1px solid var(--line); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:border-color .15s ease;
+}
+.logo-upload:hover{ border-color:var(--accent); }
+.logo-preview{ width:100%; height:100%; object-fit:cover; }
+.logo-placeholder{ color:var(--ink-dim); font-size:16px; font-weight:700; }
+.logo-spinner{
+  position:absolute; inset:0; background:rgba(11,16,22,.75);
+  display:flex; align-items:center; justify-content:center;
+}
+.logo-spinner::before{
+  content:''; width:14px; height:14px; border-radius:50%;
+  border:2px solid var(--line); border-top-color:var(--accent);
+  animation:spin .7s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
 .card-top .place-input{ width:46px; text-align:center; }
 .name-input{ font-family:var(--font-display); font-weight:700; font-size:16px; flex:1; min-width:120px; }
 
@@ -233,6 +253,7 @@ h1{ font-family:var(--font-display); font-size:28px; font-weight:700; margin:2px
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 let current = null; // {tid, rid, mid, setId}
@@ -348,6 +369,13 @@ function renderTeams() {
     <div class="team-card ${isElim ? 'eliminated' : ''}" data-key="${key}">
       <div class="card-top">
         <span class="rank-chip">#${rankMap[key]}</span>
+        <label class="logo-upload" title="Upload team logo">
+          ${t.logo
+            ? `<img class="logo-preview" src="${t.logo}" alt="">`
+            : `<span class="logo-placeholder">＋</span>`}
+          <input type="file" accept="image/*" class="logo-input" data-action="upload-logo" hidden>
+          <span class="logo-spinner" style="display:none;"></span>
+        </label>
         <input class="name-input" value="${escapeAttr(t.name || '')}" data-field="name">
         ${isElim
           ? `<span class="elim-pill">✕ ELIMINATED</span>`
@@ -399,6 +427,29 @@ function renderTeams() {
   container.querySelectorAll('[data-action="remove"]').forEach(btn => {
     btn.addEventListener('click', () => onRemove(btn));
   });
+  container.querySelectorAll('[data-action="upload-logo"]').forEach(inp => {
+    inp.addEventListener('change', () => onLogoUpload(inp));
+  });
+}
+
+function onLogoUpload(inp) {
+  const file = inp.files && inp.files[0];
+  if (!file) return;
+  const key = rowKey(inp);
+  const { tid, rid, mid, setId } = current;
+  const label = inp.closest('.logo-upload');
+  const spinner = label.querySelector('.logo-spinner');
+  spinner.style.display = 'flex';
+
+  const path = `team-logos/${tid}/${rid}/${mid}/${setId}/${key}-${Date.now()}-${file.name}`;
+  const storageRef = firebase.storage().ref().child(path);
+
+  storageRef.put(file)
+    .then(snapshot => snapshot.ref.getDownloadURL())
+    .then(url => teamsRef(tid, rid, mid, setId).child(key).update({ logo: url }))
+    .then(() => flash('Logo uploaded'))
+    .catch(err => { alert('Upload failed: ' + err.message); })
+    .finally(() => { spinner.style.display = 'none'; });
 }
 
 function rowKey(el) { return el.closest('.team-card').dataset.key; }
