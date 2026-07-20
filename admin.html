@@ -86,6 +86,18 @@ h1{ font-family:var(--font-display); font-size:28px; font-weight:700; margin:2px
   font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--accent);
   background:var(--bg-elevated); border:1px solid var(--line); border-radius:6px; padding:4px 10px; min-width:34px; text-align:center;
 }
+.slot-badge{
+  display:flex; align-items:center; gap:5px;
+  font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:.04em;
+  background:rgba(168,85,247,.14); border:1px solid #a855f7; color:#d8b4fe;
+  border-radius:6px; padding:3px 8px 3px 6px;
+}
+.slot-badge::before{ content:'SLOT'; color:#a855f7; font-size:9px; letter-spacing:.08em; }
+.slot-badge input{
+  width:30px; background:transparent; border:none; color:#f3e8ff; font-family:var(--font-mono);
+  font-weight:700; font-size:13px; text-align:center; padding:0;
+}
+.slot-badge input:focus{ box-shadow:none; }
 
 .logo-upload{
   position:relative; width:34px; height:34px; border-radius:7px; overflow:hidden;
@@ -331,6 +343,18 @@ function renderTeams() {
     return true;
   });
 
+  // Display cards in slot order (matches your printed slot list) —
+  // teams without a slot set yet fall to the end.
+  entries.sort((a, b) => {
+    const sa = a[1].slot, sb = b[1].slot;
+    const na = sa === undefined || sa === null || sa === '' ? Infinity : parseFloat(sa);
+    const nb = sb === undefined || sb === null || sb === '' ? Infinity : parseFloat(sb);
+    if (isNaN(na) && isNaN(nb)) return String(sa ?? '').localeCompare(String(sb ?? ''));
+    if (isNaN(na)) return 1;
+    if (isNaN(nb)) return -1;
+    return na - nb;
+  });
+
   // stats (computed from ALL teams, not filtered)
   const allArr = Object.values(allTeams);
   const teamsCount = allArr.length;
@@ -367,7 +391,10 @@ function renderTeams() {
     return `
     <div class="team-card ${isElim ? 'eliminated' : ''}" data-key="${key}">
       <div class="card-top">
-        <span class="rank-chip">#${rankMap[key]}</span>
+        <span class="rank-chip" title="Current live rank">#${rankMap[key]}</span>
+        <span class="slot-badge" title="Fixed slot number (matches your printed slot list)">
+          <input value="${escapeAttr(t.slot ?? '')}" data-field="slot" placeholder="—">
+        </span>
         <label class="logo-upload" title="Upload team logo">
           ${t.logo
             ? `<img class="logo-preview" src="${t.logo}" alt="">`
@@ -479,7 +506,7 @@ function onFieldChange(inp) {
   const key = rowKey(inp);
   const field = inp.dataset.field;
   let value = inp.value;
-  if (field !== 'name') value = Number(value) || 0;
+  if (field !== 'name' && field !== 'slot') value = Number(value) || 0;
   const { tid, rid, mid, setId } = current;
   teamsRef(tid, rid, mid, setId).child(key).update({ [field]: value });
   flash('Saved');
