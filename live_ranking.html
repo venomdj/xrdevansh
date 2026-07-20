@@ -27,7 +27,7 @@ html,body{
 }
 .head{
   display:grid;
-  grid-template-columns:22px 1fr 66px 24px 32px;
+  grid-template-columns:20px 1fr 58px 22px 30px;
   align-items:center;
   background:linear-gradient(90deg,#0f2a3a,#123b4f 60%,#146277);
   border-bottom:2px solid #0a4a5c;
@@ -40,7 +40,7 @@ html,body{
 }
 .head div:first-child{font-size:12px; color:#ffd23f;}
 .head div:nth-child(2){font-size:12px; color:#ffffff;}
-.head div:nth-child(3){font-size:11px;}
+.head div:nth-child(3){font-size:11px; padding-left:6px;}
 .head div:nth-child(4),.head div:nth-child(5){font-size:11px;}
 #rows{position:relative;}
 .row{
@@ -48,7 +48,7 @@ html,body{
   left:0;right:0;
   height:34px;
   display:grid;
-  grid-template-columns:22px 1fr 66px 24px 32px;
+  grid-template-columns:20px 1fr 58px 22px 30px;
   gap:4px;
   align-items:center;
   padding:0 6px;
@@ -103,6 +103,7 @@ html,body{
   background:rgba(255,255,255,.15);
 }
 .status-bar{display:inline-block;width:6px;height:12px;border-radius:1px;margin-right:2px;}
+.status-cell{ padding-left:6px; display:flex; }
 .fin-cell{text-align:center;font-weight:700;font-size:13px;}
 .pts-cell{text-align:center;font-weight:700;font-size:16px;}
 .foot{
@@ -181,7 +182,7 @@ function fillRow(el, t, i) {
   el.innerHTML = `
     <span class="rank-badge" style="background:${s.accentBg};color:${s.badgeTxt}">${i + 1}</span>
     <span class="team-cell">${logoHtml}<span class="team-name">${escapeHtml(t.name)}</span></span>
-    <span>${statusBarsHtml(t.alive, t.knocked || 0)}</span>
+    <span class="status-cell">${statusBarsHtml(t.alive, t.knocked || 0)}</span>
     <span class="fin-cell">${t.kills}</span>
     <span class="pts-cell" style="color:${s.ptsColor}">${t.total}</span>
     <span class="shimmer"></span>
@@ -194,7 +195,7 @@ function fillRow(el, t, i) {
 // instead of getting hard-clipped.
 function fitTeamName(nameEl) {
   if (!nameEl) return;
-  const maxSize = 13, minSize = 9;
+  const maxSize = 13, minSize = 10.5;
   let size = maxSize;
   nameEl.style.fontSize = size + 'px';
   // requestAnimationFrame ensures layout is settled before measuring
