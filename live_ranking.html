@@ -91,7 +91,11 @@ html,body{
 .team-cell{
   display:flex;align-items:center;gap:6px;
   font-weight:700;font-size:13px;
+  min-width:0;
+}
+.team-name{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  min-width:0;
 }
 .team-logo{
   flex-shrink:0;width:18px;height:18px;
@@ -176,12 +180,30 @@ function fillRow(el, t, i) {
     : `<span class="team-logo"></span>`;
   el.innerHTML = `
     <span class="rank-badge" style="background:${s.accentBg};color:${s.badgeTxt}">${i + 1}</span>
-    <span class="team-cell">${logoHtml}${escapeHtml(t.name)}</span>
+    <span class="team-cell">${logoHtml}<span class="team-name">${escapeHtml(t.name)}</span></span>
     <span>${statusBarsHtml(t.alive, t.knocked || 0)}</span>
     <span class="fin-cell">${t.kills}</span>
     <span class="pts-cell" style="color:${s.ptsColor}">${t.total}</span>
     <span class="shimmer"></span>
   `;
+  fitTeamName(el.querySelector('.team-name'));
+}
+
+// Shrinks the team-name font-size (down to a floor) until it fits its
+// available width, so long clan tags like "LORDS OFFICIAL" scale down
+// instead of getting hard-clipped.
+function fitTeamName(nameEl) {
+  if (!nameEl) return;
+  const maxSize = 13, minSize = 9;
+  let size = maxSize;
+  nameEl.style.fontSize = size + 'px';
+  // requestAnimationFrame ensures layout is settled before measuring
+  requestAnimationFrame(() => {
+    while (nameEl.scrollWidth > nameEl.clientWidth && size > minSize) {
+      size -= 0.5;
+      nameEl.style.fontSize = size + 'px';
+    }
+  });
 }
 
 function easeOutCubic(p) { return 1 - Math.pow(1 - p, 3); }
