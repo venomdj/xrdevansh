@@ -3,40 +3,175 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ranking Admin</title>
+<title>Live Control Room — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
-  body{padding:28px;max-width:960px;margin:0 auto;}
-  h1{font-family:var(--font-display);font-size:26px;margin:0 0 4px;}
-  .sub{color:var(--ink-dim);font-size:13px;margin-bottom:20px;}
-  .idbar{
-    display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;
-    font-family:var(--font-mono);
-  }
-  .idbar input{flex:1;min-width:150px;}
-  table{width:100%;border-collapse:collapse;background:var(--bg-panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;}
-  thead th{
-    font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-    color:var(--ink-dim);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);
-  }
-  tbody td{padding:8px 12px;border-bottom:1px solid var(--line);}
-  tbody tr:last-child td{border-bottom:none;}
-  tbody input{width:70px;text-align:center;}
-  tbody input.name{width:100%;text-align:left;}
-  .stepper{display:flex;align-items:center;gap:6px;justify-content:center;}
-  .stepper button{padding:4px 9px;font-size:14px;}
-  .toolbar{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;}
-  .status{font-family:var(--font-mono);font-size:12px;color:var(--accent-2);margin-left:8px;}
-  .remove{color:var(--danger);background:none;border:none;font-size:18px;cursor:pointer;}
-  a.overlay-link{color:var(--accent);font-family:var(--font-mono);font-size:12px;word-break:break-all;}
+body{ padding:24px; max-width:1180px; margin:0 auto; }
+
+/* ---- top bar ---- */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:14px; margin-bottom:20px;
+}
+.title-block{ display:flex; align-items:center; gap:12px; }
+.live-dot{
+  display:inline-flex; align-items:center; gap:6px;
+  color:var(--danger); font-family:var(--font-mono); font-size:11px; letter-spacing:.1em;
+  font-weight:700;
+}
+.live-dot::before{
+  content:''; width:8px; height:8px; border-radius:50%; background:var(--danger);
+  box-shadow:0 0 8px var(--danger); animation:pulse 1.4s infinite;
+}
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+h1{ font-family:var(--font-display); font-size:28px; font-weight:700; margin:2px 0 0; letter-spacing:.02em; }
+
+.stat-strip{
+  display:flex; gap:10px; background:var(--bg-panel); border:1px solid var(--line);
+  border-radius:var(--radius); padding:10px 16px;
+}
+.stat{ text-align:center; padding:0 14px; }
+.stat b{ display:block; font-family:var(--font-display); font-size:22px; }
+.stat span{ font-family:var(--font-mono); font-size:10px; color:var(--ink-dim); letter-spacing:.08em; text-transform:uppercase; }
+.stat.teams b{ color:var(--accent); }
+.stat.alive b{ color:var(--success); }
+.stat.elim b{ color:var(--danger); }
+.stat.kills b{ color:var(--accent-2); }
+
+.actions-row{ display:flex; gap:10px; align-items:center; }
+.badge-live{
+  display:flex; align-items:center; gap:6px; padding:9px 16px; border-radius:var(--radius-sm);
+  background:linear-gradient(180deg,#f1584f,#c4342c); border:1px solid #8f241e; color:#fff;
+  font-family:var(--font-display); font-weight:700; letter-spacing:.05em; font-size:13px;
+}
+.badge-live::before{ content:''; width:7px; height:7px; border-radius:50%; background:#fff; }
+
+/* ---- id bar ---- */
+.idbar{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; font-family:var(--font-mono); }
+.idbar input{ flex:1; min-width:150px; }
+
+.overlay-box{
+  display:none; margin-bottom:18px; padding:10px 14px; background:var(--bg-panel);
+  border:1px solid var(--line); border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:12px;
+}
+.overlay-box a{ word-break:break-all; }
+
+/* ---- layout: teams + sidebar ---- */
+.layout{ display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start; }
+@media (max-width:880px){ .layout{ grid-template-columns:1fr; } }
+
+.search-row{ display:flex; gap:10px; margin-bottom:14px; }
+.search-row input{ flex:1; }
+.filter-btn{ padding:8px 16px; }
+.filter-btn.active{ background:var(--bg-elevated); border-color:var(--accent); color:var(--accent); }
+
+.toolbar{ display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.status-msg{ font-family:var(--font-mono); font-size:12px; color:var(--accent); margin-left:4px; }
+
+/* ---- team card ---- */
+.team-card{
+  background:var(--bg-panel); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px 18px; margin-bottom:14px; position:relative; overflow:hidden;
+}
+.team-card::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--success);
+}
+.team-card.eliminated::before{ background:var(--danger); }
+.team-card.eliminated{ background:linear-gradient(90deg, rgba(239,68,68,.08), transparent 40%), var(--bg-panel); }
+
+.card-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.rank-chip{
+  font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--accent);
+  background:var(--bg-elevated); border:1px solid var(--line); border-radius:6px; padding:4px 10px; min-width:34px; text-align:center;
+}
+.card-top .place-input{ width:46px; text-align:center; }
+.name-input{ font-family:var(--font-display); font-weight:700; font-size:16px; flex:1; min-width:120px; }
+
+.elim-pill{
+  font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:.05em;
+  padding:5px 10px; border-radius:20px; border:1px solid var(--danger); color:var(--danger); background:rgba(239,68,68,.08);
+  display:flex; align-items:center; gap:5px;
+}
+.in-pill{
+  font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:.05em;
+  padding:5px 10px; border-radius:20px; border:1px solid var(--success); color:var(--success); background:rgba(51,199,102,.08);
+  display:flex; align-items:center; gap:5px; cursor:pointer;
+}
+
+.stepper{ display:flex; align-items:center; gap:6px; }
+.stepper button{ padding:4px 10px; font-size:15px; line-height:1; }
+.stepper input{ width:44px; text-align:center; font-family:var(--font-mono); font-weight:700; }
+
+.card-mid{ display:flex; align-items:center; gap:22px; margin-top:12px; flex-wrap:wrap; }
+.field-label{ font-family:var(--font-mono); font-size:10px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+
+.pts-pill{
+  font-family:var(--font-mono); font-weight:700; padding:5px 14px; border-radius:20px;
+  background:rgba(255,176,46,.12); border:1px solid var(--accent-2); color:var(--accent-2); font-size:13px;
+}
+
+.card-bottom{ display:flex; gap:10px; margin-top:14px; }
+.card-bottom button{ font-size:12px; padding:7px 14px; }
+
+/* ---- sidebar ---- */
+.side-panel{
+  background:var(--bg-panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px;
+}
+.side-panel h3{
+  font-family:var(--font-mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-dim); margin:0 0 14px;
+}
+.auto-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); }
+.auto-row:last-child{ border-bottom:none; }
+.auto-row b{ font-family:var(--font-display); font-size:14px; display:block; margin-bottom:3px; }
+.auto-row p{ font-size:12px; color:var(--ink-dim); margin:0; max-width:190px; }
+
+.switch{ position:relative; width:40px; height:22px; flex-shrink:0; }
+.switch input{ opacity:0; width:0; height:0; }
+.slider{
+  position:absolute; inset:0; background:var(--bg-elevated); border:1px solid var(--line);
+  border-radius:20px; cursor:pointer; transition:.2s;
+}
+.slider::before{
+  content:''; position:absolute; height:16px; width:16px; left:2px; top:2px; background:var(--ink-dim);
+  border-radius:50%; transition:.2s;
+}
+.switch input:checked + .slider{ background:rgba(23,201,209,.25); border-color:var(--accent); }
+.switch input:checked + .slider::before{ transform:translateX(18px); background:var(--accent); }
+
+.mini-stats{ margin-top:18px; display:grid; gap:10px; }
+.mini-stat{
+  background:var(--bg-elevated); border:1px solid var(--line); border-radius:var(--radius-sm);
+  padding:12px 14px; display:flex; align-items:center; gap:12px;
+}
+.mini-stat b{ font-family:var(--font-display); font-size:22px; display:block; }
+.mini-stat span{ font-family:var(--font-mono); font-size:10px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.06em; }
 </style>
 </head>
 <body>
 
-<h1>Live Ranking — Admin</h1>
-<div class="sub">Update alive count, kills and placement points. Overlay updates instantly.</div>
+<div class="topbar">
+  <div class="title-block">
+    <div>
+      <div class="live-dot">LIVE CONTROL ROOM</div>
+      <h1 id="matchTitle">MATCH · ERANGEL</h1>
+    </div>
+  </div>
+
+  <div class="stat-strip">
+    <div class="stat teams"><b id="statTeams">0</b><span>Teams</span></div>
+    <div class="stat alive"><b id="statAlive">0</b><span>Alive</span></div>
+    <div class="stat elim"><b id="statElim">0</b><span>Eliminated</span></div>
+    <div class="stat kills"><b id="statKills">0</b><span>Total Kills</span></div>
+  </div>
+
+  <div class="actions-row">
+    <span class="badge-live">LIVE</span>
+    <button class="ghost" id="reloadBtn" title="Reload">⟳</button>
+  </div>
+</div>
 
 <div class="idbar">
   <input id="tid" placeholder="Tournament ID (tid)">
@@ -45,31 +180,64 @@
   <input id="setId" placeholder="Set ID (setId)">
   <button class="primary" id="loadBtn">Load / Connect</button>
 </div>
-<div id="overlayLinkBox" style="margin-bottom:16px;display:none;">
-  Overlay URL: <a class="overlay-link" id="overlayLink" href="#" target="_blank"></a>
+
+<div class="overlay-box" id="overlayLinkBox">
+  Overlay URL: <a id="overlayLink" href="#" target="_blank"></a>
   <button class="ghost" id="copyLinkBtn" style="margin-left:8px;padding:4px 10px;font-size:12px;">Copy</button>
 </div>
 
-<div class="toolbar">
-  <input id="matchLabel" placeholder="Match label e.g. MATCH 3" style="width:180px;">
-  <button class="ghost" id="setLabelBtn">Set Label</button>
-  <button class="primary" id="addTeamBtn">+ Add Team</button>
-  <button class="danger" id="resetBtn">Reset All Alive/Kills</button>
-  <span class="status" id="status"></span>
-</div>
+<div class="layout">
+  <div>
+    <div class="search-row">
+      <input id="searchTeams" placeholder="Search teams...">
+      <button class="ghost filter-btn active" data-filter="all">All</button>
+      <button class="ghost filter-btn" data-filter="alive">Alive</button>
+      <button class="ghost filter-btn" data-filter="out">Out</button>
+    </div>
 
-<table>
-  <thead>
-    <tr><th>Team</th><th>Alive</th><th>Kills</th><th>Placement Pts</th><th>Total</th><th></th></tr>
-  </thead>
-  <tbody id="teamRows"><tr><td colspan="6" style="color:var(--ink-dim);">Load a set to begin.</td></tr></tbody>
-</table>
+    <div class="toolbar">
+      <input id="matchLabel" placeholder="Match label e.g. MATCH 3" style="width:180px;">
+      <button class="ghost" id="setLabelBtn">Set Label</button>
+      <button class="primary" id="addTeamBtn">+ Add Team</button>
+      <button class="danger" id="resetBtn">Reset All Alive/Kills</button>
+      <span class="status-msg" id="status"></span>
+    </div>
+
+    <div id="teamCards"><div style="color:var(--ink-dim); padding:20px 0;">Load a set to begin.</div></div>
+  </div>
+
+  <div class="side-panel">
+    <h3>Smart Automation</h3>
+    <div class="auto-row">
+      <div>
+        <b>Auto-Show Final 4</b>
+        <p>Swaps live ranking to final teams at ≤4 alive</p>
+      </div>
+      <label class="switch"><input type="checkbox" id="autoFinal4"><span class="slider"></span></label>
+    </div>
+    <div class="auto-row">
+      <div>
+        <b>Auto-End Match</b>
+        <p>Sets winner &amp; ends match when 1 team remains</p>
+      </div>
+      <label class="switch"><input type="checkbox" id="autoEndMatch"><span class="slider"></span></label>
+    </div>
+
+    <h3 style="margin-top:22px;">Match Stats</h3>
+    <div class="mini-stats">
+      <div class="mini-stat"><b id="miniTeams">0</b><span>Teams Alive</span></div>
+      <div class="mini-stat"><b id="miniKills">0</b><span>Total Kills</span></div>
+    </div>
+  </div>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 let current = null; // {tid, rid, mid, setId}
+let allTeams = {};
+let currentFilter = 'all';
 const statusEl = document.getElementById('status');
 
 function flash(msg) {
@@ -77,7 +245,6 @@ function flash(msg) {
   setTimeout(() => statusEl.textContent = '', 1500);
 }
 
-// Pre-fill from URL if present, e.g. admin.html?tid=..&rid=..&mid=..&setId=..
 (function prefill() {
   const ids = getUrlIds();
   if (ids.tid) document.getElementById('tid').value = ids.tid;
@@ -95,10 +262,10 @@ document.getElementById('loadBtn').onclick = () => {
   current = { tid, rid, mid, setId };
   connect();
 };
+document.getElementById('reloadBtn').onclick = () => { if (current) connect(); };
 
 function connect() {
   const { tid, rid, mid, setId } = current;
-
   const overlayUrl = `${location.origin}${location.pathname.replace('admin.html','live_ranking.html')}?tid=${tid}&rid=${rid}&mid=${mid}&setId=${setId}`;
   document.getElementById('overlayLinkBox').style.display = 'block';
   const linkEl = document.getElementById('overlayLink');
@@ -110,63 +277,131 @@ function connect() {
   };
 
   teamsRef(tid, rid, mid, setId).on('value', snap => {
-    renderTeams(snap.val() || {});
+    allTeams = snap.val() || {};
+    renderTeams();
   });
 
   metaRef(tid, rid, mid, setId).once('value').then(snap => {
     const meta = snap.val();
-    if (meta && meta.matchLabel) document.getElementById('matchLabel').value = meta.matchLabel;
+    if (meta && meta.matchLabel) {
+      document.getElementById('matchLabel').value = meta.matchLabel;
+      document.getElementById('matchTitle').textContent = meta.matchLabel;
+    }
   });
 }
 
-function renderTeams(teams) {
-  const tbody = document.getElementById('teamRows');
-  const entries = Object.entries(teams);
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderTeams();
+  });
+});
+document.getElementById('searchTeams').addEventListener('input', renderTeams);
+
+function renderTeams() {
+  const container = document.getElementById('teamCards');
+  const search = document.getElementById('searchTeams').value.trim().toLowerCase();
+  const entries = Object.entries(allTeams).filter(([key, t]) => {
+    const alive = Number(t.alive ?? 0);
+    if (currentFilter === 'alive' && alive <= 0) return false;
+    if (currentFilter === 'out' && alive > 0) return false;
+    if (search && !(t.name || '').toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // stats (computed from ALL teams, not filtered)
+  const allArr = Object.values(allTeams);
+  const teamsCount = allArr.length;
+  const aliveCount = allArr.filter(t => Number(t.alive ?? 0) > 0).length;
+  const elimCount = teamsCount - aliveCount;
+  const totalKills = allArr.reduce((s, t) => s + Number(t.kills ?? 0), 0);
+  document.getElementById('statTeams').textContent = teamsCount;
+  document.getElementById('statAlive').textContent = aliveCount;
+  document.getElementById('statElim').textContent = elimCount;
+  document.getElementById('statKills').textContent = totalKills;
+  document.getElementById('miniTeams').textContent = aliveCount;
+  document.getElementById('miniKills').textContent = totalKills;
+
   if (entries.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--ink-dim);">No teams yet — click "+ Add Team".</td></tr>';
+    container.innerHTML = '<div style="color:var(--ink-dim); padding:20px 0;">No teams match.</div>';
     return;
   }
-  tbody.innerHTML = entries.map(([key, t]) => {
+
+  // sort by total desc for rank chip
+  const sorted = [...entries].sort((a, b) => {
+    const ta = Number(a[1].placementPoints ?? 0) + Number(a[1].kills ?? 0);
+    const tb = Number(b[1].placementPoints ?? 0) + Number(b[1].kills ?? 0);
+    return tb - ta;
+  });
+  const rankMap = {};
+  sorted.forEach(([key], i) => rankMap[key] = i + 1);
+
+  container.innerHTML = entries.map(([key, t]) => {
     const alive = Number(t.alive ?? 0);
     const kills = Number(t.kills ?? 0);
     const pp = Number(t.placementPoints ?? 0);
-    const total = alive >= 0 ? pp + kills : pp + kills;
+    const total = pp + kills;
+    const isElim = alive <= 0;
     return `
-    <tr data-key="${key}">
-      <td><input class="name" value="${escapeAttr(t.name || '')}" data-field="name"></td>
-      <td>
-        <div class="stepper">
-          <button class="ghost step" data-field="alive" data-delta="-1">-</button>
-          <input data-field="alive" value="${alive}">
-          <button class="ghost step" data-field="alive" data-delta="1">+</button>
+    <div class="team-card ${isElim ? 'eliminated' : ''}" data-key="${key}">
+      <div class="card-top">
+        <span class="rank-chip">#${rankMap[key]}</span>
+        <input class="name-input" value="${escapeAttr(t.name || '')}" data-field="name">
+        ${isElim
+          ? `<span class="elim-pill">✕ ELIMINATED</span>`
+          : `<span class="in-pill" data-action="eliminate">● IN</span>`}
+        <button class="ghost restore-btn" data-action="restore" style="${isElim ? '' : 'display:none;'} font-size:12px; padding:6px 12px;">Restore</button>
+      </div>
+      <div class="card-mid">
+        <div>
+          <div class="field-label">Alive</div>
+          <div class="stepper">
+            <button class="ghost step" data-field="alive" data-delta="-1">-</button>
+            <input data-field="alive" value="${alive}">
+            <button class="ghost step" data-field="alive" data-delta="1">+</button>
+          </div>
         </div>
-      </td>
-      <td>
-        <div class="stepper">
-          <button class="ghost step" data-field="kills" data-delta="-1">-</button>
-          <input data-field="kills" value="${kills}">
-          <button class="ghost step" data-field="kills" data-delta="1">+</button>
+        <div>
+          <div class="field-label">Kills</div>
+          <div class="stepper">
+            <button class="ghost step" data-field="kills" data-delta="-1">-</button>
+            <input data-field="kills" value="${kills}">
+            <button class="ghost step" data-field="kills" data-delta="1">+</button>
+          </div>
         </div>
-      </td>
-      <td><input data-field="placementPoints" value="${pp}"></td>
-      <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-2);text-align:center;">${total}</td>
-      <td><button class="remove" title="Remove team">✕</button></td>
-    </tr>`;
+        <div>
+          <div class="field-label">Placement Pts</div>
+          <input data-field="placementPoints" value="${pp}" style="width:60px; text-align:center;">
+        </div>
+        <div>
+          <div class="field-label">Total</div>
+          <span class="pts-pill">${total} pts</span>
+        </div>
+      </div>
+      <div class="card-bottom">
+        <button class="ghost" data-action="eliminate-toggle">${isElim ? 'Mark In' : 'Eliminate'}</button>
+        <button class="danger remove-btn" data-action="remove">Remove Team</button>
+      </div>
+    </div>`;
   }).join('');
 
-  // Wire up inputs
-  tbody.querySelectorAll('input[data-field]').forEach(inp => {
+  container.querySelectorAll('input[data-field]').forEach(inp => {
     inp.addEventListener('change', () => onFieldChange(inp));
   });
-  tbody.querySelectorAll('button.step').forEach(btn => {
+  container.querySelectorAll('button.step').forEach(btn => {
     btn.addEventListener('click', () => onStep(btn));
   });
-  tbody.querySelectorAll('button.remove').forEach(btn => {
+  container.querySelectorAll('[data-action="eliminate-toggle"]').forEach(btn => {
+    btn.addEventListener('click', () => onEliminateToggle(btn));
+  });
+  container.querySelectorAll('[data-action="remove"]').forEach(btn => {
     btn.addEventListener('click', () => onRemove(btn));
   });
 }
 
-function rowKey(el) { return el.closest('tr').dataset.key; }
+function rowKey(el) { return el.closest('.team-card').dataset.key; }
 
 function onFieldChange(inp) {
   const key = rowKey(inp);
@@ -188,6 +423,15 @@ function onStep(btn) {
     const newVal = Math.max(0, Number(snap.val() || 0) + delta);
     ref.set(newVal);
   });
+}
+
+function onEliminateToggle(btn) {
+  const key = rowKey(btn);
+  const { tid, rid, mid, setId } = current;
+  const t = allTeams[key] || {};
+  const alive = Number(t.alive ?? 0);
+  const newAlive = alive > 0 ? 0 : 4;
+  teamsRef(tid, rid, mid, setId).child(key).update({ alive: newAlive });
 }
 
 function onRemove(btn) {
@@ -226,8 +470,21 @@ document.getElementById('setLabelBtn').onclick = () => {
   const { tid, rid, mid, setId } = current;
   const label = document.getElementById('matchLabel').value.trim();
   metaRef(tid, rid, mid, setId).update({ matchLabel: label });
+  document.getElementById('matchTitle').textContent = label || 'MATCH';
   flash('Label set');
 };
+
+// Smart automation toggles — persisted to meta, logic left simple/off by default.
+document.getElementById('autoFinal4').addEventListener('change', e => {
+  if (!current) return;
+  const { tid, rid, mid, setId } = current;
+  metaRef(tid, rid, mid, setId).update({ autoFinal4: e.target.checked });
+});
+document.getElementById('autoEndMatch').addEventListener('change', e => {
+  if (!current) return;
+  const { tid, rid, mid, setId } = current;
+  metaRef(tid, rid, mid, setId).update({ autoEndMatch: e.target.checked });
+});
 
 function escapeAttr(s) {
   return String(s).replace(/"/g, '&quot;');
