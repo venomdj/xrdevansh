@@ -18,6 +18,8 @@ html,body{
   margin:0;padding:0;background:transparent;
   font-family:'Rajdhani',sans-serif;
   overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
 }
 #stage{
   width:250px;
@@ -96,6 +98,10 @@ html,body{
 .team-name{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   min-width:0;
+  font-weight:600;
+  letter-spacing:0.2px;
+  text-shadow:0 1px 2px rgba(0,0,0,.55);
+  -webkit-font-smoothing:antialiased;
 }
 .team-logo{
   flex-shrink:0;width:18px;height:18px;
@@ -195,7 +201,7 @@ function fillRow(el, t, i) {
 // instead of getting hard-clipped.
 function fitTeamName(nameEl) {
   if (!nameEl) return;
-  const maxSize = 13, minSize = 10.5;
+  const maxSize = 14, minSize = 11;
   let size = maxSize;
   nameEl.style.fontSize = size + 'px';
   // requestAnimationFrame ensures layout is settled before measuring
