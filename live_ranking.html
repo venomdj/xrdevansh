@@ -5,124 +5,109 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Ranking Overlay</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ===== BGMI esports color system =====
-   Header/footer : teal-cyan gradient
-   #1 row        : gold/yellow
-   #2 row        : copper/orange
-   #3+ rows      : alternating dark navy
-   Eliminated    : desaturated/dimmed
+/* ===== Broadcast-accurate color system =====
+   Title  : #4F79C9
+   Header : #111111
+   Row A  : #9096AD
+   Row B  : #7F8088
+   Miss   : darker grey, MISS label
 */
 html,body{
   margin:0;padding:0;background:transparent;
-  font-family:'Rajdhani',sans-serif;
+  font-family:'Oswald',sans-serif;
   overflow:hidden;
-  -webkit-font-smoothing:antialiased;
-  text-rendering:optimizeLegibility;
 }
 #stage{
-  width:250px;
-  border-radius:4px;
-  overflow:hidden;
-  box-shadow:0 4px 18px rgba(0,0,0,.45);
+  width:340px;
+  margin:10px;
+  box-sizing:border-box;
+}
+.title-bar{
+  width:100%;
+  height:36px;
+  background:#4F79C9;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.title-bar span{
+  font-family:'Oswald',sans-serif;
+  font-weight:700;
+  font-size:26px;
+  letter-spacing:1px;
+  color:#000000;
+  text-transform:uppercase;
 }
 .head{
+  width:100%;
+  height:26px;
+  background:#111111;
   display:grid;
-  grid-template-columns:20px 1fr 58px 22px 30px;
+  grid-template-columns:16% 40% 14% 18% 12%;
   align-items:center;
-  background:linear-gradient(90deg,#0f2a3a,#123b4f 60%,#146277);
-  border-bottom:2px solid #0a4a5c;
-  padding:6px 6px;
 }
 .head div{
-  color:#8fe9ef;
+  color:#ffffff;
   font-weight:700;
-  letter-spacing:0.6px;
+  font-size:12px;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
 }
-.head div:first-child{font-size:12px; color:#ffd23f;}
-.head div:nth-child(2){font-size:12px; color:#ffffff;}
-.head div:nth-child(3){font-size:11px; padding-left:6px;}
-.head div:nth-child(4),.head div:nth-child(5){font-size:11px;}
+.head .c-rank{text-align:center;}
+.head .c-team{text-align:left; padding-left:6px;}
+.head .c-pts{text-align:center;}
+.head .c-alive{text-align:center;}
+.head .c-elims{text-align:center;}
 #rows{position:relative;}
 .row{
   position:absolute;
   left:0;right:0;
-  height:34px;
+  height:31px;
   display:grid;
-  grid-template-columns:20px 1fr 58px 22px 30px;
-  gap:4px;
+  grid-template-columns:16% 40% 14% 18% 12%;
   align-items:center;
-  padding:0 6px;
-  border-bottom:1px solid rgba(0,0,0,.35);
   box-sizing:border-box;
   transition:top .5s cubic-bezier(.4,0,.2,1), background .3s ease;
 }
-.row.eliminated{ filter:grayscale(.6) brightness(.55); }
-.row{ position:absolute; will-change:top; }
-.row.pulse{ animation:rowGlow 1.1s ease-out; }
-@keyframes rowGlow{
-  0%   { box-shadow:0 0 0 0 rgba(23,201,209,0); filter:brightness(1); }
-  15%  { box-shadow:0 0 14px 3px rgba(23,201,209,.55); filter:brightness(1.18); }
-  100% { box-shadow:0 0 0 0 rgba(23,201,209,0); filter:brightness(1); }
+.row .c-rank{
+  text-align:center; color:#ffffff; font-weight:700; font-size:15px;
 }
-.row .shimmer{
-  position:absolute; inset:0; pointer-events:none;
-  background:linear-gradient(100deg, transparent 20%, rgba(255,255,255,.35) 45%, transparent 65%);
-  transform:translateX(-120%);
-  mix-blend-mode:overlay;
+.row .c-team{
+  display:flex; align-items:center; gap:7px; padding-left:6px; min-width:0;
 }
-.row.pulse .shimmer{ animation:shimmerSweep .9s ease-out; }
-@keyframes shimmerSweep{
-  0%   { transform:translateX(-120%); opacity:1; }
-  100% { transform:translateX(120%); opacity:0; }
+.row .c-pts{
+  text-align:right; padding-right:8px; color:#ffffff; font-weight:700; font-size:15px;
 }
-.pts-cell{ transition:transform .25s ease; display:flex; align-items:center; justify-content:center; }
-.pts-cell.bump{ animation:ptsBump .5s ease-out; }
-@keyframes ptsBump{
-  0%   { transform:scale(1); }
-  35%  { transform:scale(1.35); }
-  100% { transform:scale(1); }
-}
-.rank-badge{
-  width:20px;height:20px;
-  font-weight:700;font-size:13px;
-  display:flex;align-items:center;justify-content:center;
-  border-radius:3px;
-}
-.team-cell{
-  display:flex;align-items:center;gap:6px;
-  font-weight:700;font-size:13px;
-  min-width:0;
+.row .c-alive{ display:flex; align-items:center; justify-content:center; gap:3px; }
+.row .c-elims{ text-align:center; color:#ffffff; font-weight:700; font-size:15px; }
+.team-logo{
+  flex-shrink:0;width:19px;height:19px;
+  object-fit:contain;
 }
 .team-name{
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   min-width:0;
-  font-weight:600;
-  letter-spacing:0.2px;
-  text-shadow:0 1px 2px rgba(0,0,0,.55);
-  -webkit-font-smoothing:antialiased;
+  color:#ffffff;
+  font-weight:700;
+  font-size:14px;
+  text-transform:uppercase;
 }
-.team-logo{
-  flex-shrink:0;width:18px;height:18px;
-  border-radius:2px;object-fit:contain;
-  background:rgba(255,255,255,.15);
+.status-bar{
+  display:inline-block;
+  width:7px;height:20px;
+  border-radius:3.5px;
 }
-.status-bar{display:inline-block;width:6px;height:12px;border-radius:1px;margin-right:2px;}
-.status-cell{ padding-left:6px; display:flex; }
-.fin-cell{text-align:center;font-weight:700;font-size:13px;}
-.pts-cell{text-align:center;font-weight:700;font-size:16px;}
-.foot{
-  display:flex;gap:8px;justify-content:center;align-items:center;
-  background:linear-gradient(90deg,#146277,#123b4f 60%,#0f2a3a);
-  border-top:2px solid #0a4a5c;
-  padding:6px 0;
+.miss-label{
+  letter-spacing:2px; font-weight:700; font-size:12px; color:#c9c9c9; text-transform:uppercase;
 }
-.legend-item{
-  display:flex;align-items:center;gap:3px;
-  font-size:9px;color:#e7fbfc;font-weight:700;
-}
-.legend-chip{display:inline-block;width:9px;height:9px;border-radius:1px;}
+/* Eliminated / MISS row look */
+.row.eliminated .team-logo{ opacity:.45; }
+.row.eliminated .team-name{ color:#8a8a8a; }
+.row.eliminated .c-rank{ color:#8a8a8a; }
+.row.eliminated .c-pts{ color:#8a8a8a; }
+.row.eliminated .c-elims{ color:#8a8a8a; }
 .empty{
   padding:16px 10px;text-align:center;color:#8fa3ad;
   font-size:12px;background:#101820;font-weight:600;
@@ -131,16 +116,12 @@ html,body{
 </head>
 <body>
 <div id="stage">
+<div class="title-bar"><span>LIVE RANKING</span></div>
 <div class="head">
-<div>#</div><div>TEAMS</div><div>STATUS</div><div>FIN</div><div>PTS</div>
+<div class="c-rank">RANK</div><div class="c-team">TEAM</div><div class="c-pts">PTS</div><div class="c-alive">ALIVE</div><div class="c-elims">ELIMS</div>
 </div>
 <div id="rows">
 <div class="empty" id="emptyMsg" style="display:none;">Waiting for data&hellip;</div>
-</div>
-<div class="foot">
-<span class="legend-item"><i class="legend-chip" style="background:#33c766"></i>ALIVE</span>
-<span class="legend-item"><i class="legend-chip" style="background:#f2994a"></i>KNOCKED</span>
-<span class="legend-item"><i class="legend-chip" style="background:#4a4a4a"></i>ELIMINATED</span>
 </div>
 </div>
 
@@ -148,22 +129,12 @@ html,body{
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
-const ROW_H = 34;
-const STATUS_COLOR = { eliminated: '#4a4a4a', knocked: '#f2994a', alive: '#33c766' };
+const ROW_H = 31;
+const STATUS_COLOR = { eliminated: '#000000', knocked: '#FF1A1A', alive: '#ffffff' };
+const ROW_COLORS = ['#9096AD', '#7F8088'];
 const rowsEl = document.getElementById('rows');
 const emptyMsg = document.getElementById('emptyMsg');
 let prevTotals = {};
-
-/* Rank-based row theming — BGMI esports style medal set:
-   #1 gold, #2 silver, #3 bronze, #4+ alternating dark navy */
-function rowStyle(i) {
-  if (i === 0) return { bg: 'linear-gradient(90deg,#3a2f06,#5c4a0a 40%,#2a2204)', accentBg: '#ffd23f', ptsColor: '#ffd23f', txt: '#fff7d6', badgeTxt: '#241c02' };
-  if (i === 1) return { bg: 'linear-gradient(90deg,#2b2f33,#454b50 40%,#202325)', accentBg: '#d7dee3', ptsColor: '#d7dee3', txt: '#f2f5f7', badgeTxt: '#1b1e20' };
-  if (i === 2) return { bg: 'linear-gradient(90deg,#3a2412,#6b4520 40%,#2a1a0d)', accentBg: '#cd7f32', ptsColor: '#e3995a', txt: '#ffe4c9', badgeTxt: '#291609' };
-  return i % 2 === 0
-    ? { bg: '#141c24', accentBg: '#17c9d1', ptsColor: '#ffb02e', txt: '#eef2f6', badgeTxt: '#04191b' }
-    : { bg: '#1a232c', accentBg: '#17c9d1', ptsColor: '#ffb02e', txt: '#eef2f6', badgeTxt: '#04191b' };
-}
 
 function statusBarsHtml(alive, knocked) {
   const total = 4;
@@ -178,64 +149,36 @@ function statusBarsHtml(alive, knocked) {
 }
 
 function fillRow(el, t, i) {
-  const s = rowStyle(i);
-  el.style.background = s.bg;
-  el.style.color = s.txt;
-  el.classList.toggle('eliminated', t.alive <= 0);
+  const isMiss = t.alive <= 0;
+  el.style.background = ROW_COLORS[i % 2];
+  el.classList.toggle('eliminated', isMiss);
   const logoHtml = t.logo
     ? `<img class="team-logo" src="${t.logo}" alt="">`
     : `<span class="team-logo"></span>`;
+  const aliveHtml = isMiss
+    ? `<span class="miss-label">MISS</span>`
+    : statusBarsHtml(t.alive, t.knocked || 0);
   el.innerHTML = `
-    <span class="rank-badge" style="background:${s.accentBg};color:${s.badgeTxt}">${i + 1}</span>
-    <span class="team-cell">${logoHtml}<span class="team-name">${escapeHtml(t.name)}</span></span>
-    <span class="status-cell">${statusBarsHtml(t.alive, t.knocked || 0)}</span>
-    <span class="fin-cell">${t.kills}</span>
-    <span class="pts-cell" style="color:${s.ptsColor}">${t.total}</span>
-    <span class="shimmer"></span>
+    <span class="c-rank">#${i + 1}</span>
+    <span class="c-team">${logoHtml}<span class="team-name">${escapeHtml(t.name)}</span></span>
+    <span class="c-pts">${t.total}</span>
+    <span class="c-alive">${aliveHtml}</span>
+    <span class="c-elims">${t.kills}</span>
   `;
   fitTeamName(el.querySelector('.team-name'));
 }
 
-// Shrinks the team-name font-size (down to a floor) until it fits its
-// available width, so long clan tags like "LORDS OFFICIAL" scale down
-// instead of getting hard-clipped.
 function fitTeamName(nameEl) {
   if (!nameEl) return;
   const maxSize = 14, minSize = 11;
   let size = maxSize;
   nameEl.style.fontSize = size + 'px';
-  // requestAnimationFrame ensures layout is settled before measuring
   requestAnimationFrame(() => {
     while (nameEl.scrollWidth > nameEl.clientWidth && size > minSize) {
       size -= 0.5;
       nameEl.style.fontSize = size + 'px';
     }
   });
-}
-
-function easeOutCubic(p) { return 1 - Math.pow(1 - p, 3); }
-
-function flashRow(el, oldTotal, newTotal) {
-  // gentle glow + shimmer sweep across the row
-  el.classList.remove('pulse'); void el.offsetWidth; // restart animation
-  el.classList.add('pulse');
-  setTimeout(() => el.classList.remove('pulse'), 1100);
-
-  const ptsEl = el.querySelector('.pts-cell');
-  ptsEl.classList.remove('bump'); void ptsEl.offsetWidth;
-  ptsEl.classList.add('bump');
-  setTimeout(() => ptsEl.classList.remove('bump'), 500);
-
-  let start = null;
-  const duration = 650;
-  function step(ts) {
-    if (!start) start = ts;
-    const p = Math.min((ts - start) / duration, 1);
-    const eased = easeOutCubic(p);
-    ptsEl.textContent = Math.round(oldTotal + (newTotal - oldTotal) * eased);
-    if (p < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
 }
 
 function renderTeams(teams) {
@@ -258,11 +201,6 @@ function renderTeams(teams) {
       el.style.top = (i * ROW_H) + 'px';
     }
     fillRow(el, t, i);
-
-    const old = prevTotals[t.key];
-    if (!isNew && old !== undefined && old !== t.total) {
-      flashRow(el, old, t.total);
-    }
     prevTotals[t.key] = t.total;
   });
 
@@ -285,8 +223,6 @@ if (!tid || !rid || !mid || !setId) {
 } else {
   metaRef(tid, rid, mid, setId).on('value', snap => {
     const meta = snap.val();
-    // match label available at meta.matchLabel if you want to surface it
-    // in a header badge later; header currently mirrors the reference design.
   });
 
   teamsRef(tid, rid, mid, setId).on('value', snap => {
